@@ -397,11 +397,15 @@ def reset_password():
     data = request.json
     email = data.get('email')
     new_password = data.get('new_password')
+    check_only = data.get('check_only', False)
     db = get_db()
     user = db.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
     if not user:
         db.close()
         return jsonify({'success': False, 'message': 'Email not found!'})
+    if check_only:
+        db.close()
+        return jsonify({'success': True, 'message': 'Email verified!'})
     db.execute('UPDATE users SET password=? WHERE email=?', (new_password, email))
     db.commit()
     db.close()
