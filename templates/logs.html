@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VendorBridge - Activity Logs</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+        .sidebar {
+            position: fixed; left: 0; top: 0;
+            width: 240px; height: 100vh;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            color: white; padding: 20px 0; z-index: 100;
+        }
+        .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .sidebar-logo h2 { font-size: 20px; font-weight: 800; }
+        .sidebar-logo p { font-size: 11px; opacity: 0.7; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 20px; cursor: pointer;
+            transition: background 0.3s; font-size: 14px;
+            font-weight: 500; text-decoration: none; color: white;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.2); }
+        .nav-item span { font-size: 18px; }
+        .main { margin-left: 240px; padding: 30px; min-height: 100vh; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .topbar h1 { font-size: 24px; color: #333; font-weight: 700; }
+        .timeline {
+            background: white; border-radius: 12px;
+            padding: 30px; box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+        }
+        .timeline h3 { font-size: 16px; color: #333; margin-bottom: 24px; }
+        .log-item {
+            display: flex; align-items: flex-start;
+            gap: 16px; padding: 16px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .log-item:last-child { border-bottom: none; }
+        .log-icon {
+            width: 44px; height: 44px;
+            border-radius: 50%; background: #f0f2f5;
+            display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+            flex-shrink: 0;
+        }
+        .log-icon.vendor { background: #e8f4fd; }
+        .log-icon.rfq { background: #fef3e2; }
+        .log-icon.quotation { background: #e8fdf0; }
+        .log-icon.po { background: #fde8f4; }
+        .log-icon.invoice { background: #ffe8e8; }
+        .log-content { flex: 1; }
+        .log-action { font-size: 14px; font-weight: 700; color: #333; }
+        .log-detail { font-size: 13px; color: #888; margin-top: 3px; }
+        .log-badge {
+            padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 600;
+        }
+        .badge-vendor { background: #e8f4fd; color: #3498db; }
+        .badge-rfq { background: #fef3e2; color: #f39c12; }
+        .badge-quotation { background: #e8fdf0; color: #2ed573; }
+        .badge-po { background: #fde8f4; color: #e84393; }
+        .badge-invoice { background: #ffe8e8; color: #ff4757; }
+        .empty-state { text-align: center; padding: 50px; color: #888; }
+        .stats-row {
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            gap: 16px; margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white; border-radius: 10px;
+            padding: 16px; text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .stat-card .num { font-size: 24px; font-weight: 800; color: #333; }
+        .stat-card .label { font-size: 12px; color: #888; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <h2>🏢 VendorBridge</h2>
+        <p>Procurement ERP</p>
+    </div>
+    <a href="/dashboard" class="nav-item"><span>📊</span> Dashboard</a>
+    <a href="/vendors" class="nav-item"><span>🏭</span> Vendors</a>
+    <a href="/rfq" class="nav-item"><span>📋</span> RFQs</a>
+    <a href="/quotations" class="nav-item"><span>💬</span> Quotations</a>
+    <a href="/orders" class="nav-item"><span>📦</span> Purchase Orders</a>
+    <a href="/invoices" class="nav-item"><span>🧾</span> Invoices</a>
+    <a href="/logs" class="nav-item active"><span>📜</span> Activity Logs</a>
+    <a href="/reports" class="nav-item"><span>📈</span> Reports</a>
+</div>
+
+<div class="main">
+    <div class="topbar">
+        <h1>📜 Activity Logs</h1>
+    </div>
+
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="timeline">
+        <h3>All Procurement Activities</h3>
+        <div id="logsList">
+            <div class="empty-state">Loading logs...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadLogs() {
+        const res = await fetch('/api/logs');
+        const logs = await res.json();
+
+        // Stats
+        const counts = { vendor: 0, rfq: 0, quotation: 0, po: 0, invoice: 0 };
+        logs.forEach(l => counts[l.type]++);
+        document.getElementById('statsRow').innerHTML = `
+            <div class="stat-card"><div class="num">${counts.vendor}</div><div class="label">🏭 Vendors</div></div>
+            <div class="stat-card"><div class="num">${counts.rfq}</div><div class="label">📋 RFQs</div></div>
+            <div class="stat-card"><div class="num">${counts.quotation}</div><div class="label">💬 Quotations</div></div>
+            <div class="stat-card"><div class="num">${counts.po}</div><div class="label">📦 Orders</div></div>
+            <div class="stat-card"><div class="num">${counts.invoice}</div><div class="label">🧾 Invoices</div></div>
+        `;
+
+        if (logs.length === 0) {
+            document.getElementById('logsList').innerHTML = '<div class="empty-state">No activity yet!</div>';
+            return;
+        }
+
+        document.getElementById('logsList').innerHTML = logs.map(log => `
+            <div class="log-item">
+                <div class="log-icon ${log.type}">${log.icon}</div>
+                <div class="log-content">
+                    <div class="log-action">${log.action}</div>
+                    <div class="log-detail">${log.detail}</div>
+                </div>
+                <span class="log-badge badge-${log.type}">${log.type}</span>
+            </div>
+        `).join('');
+    }
+
+    loadLogs();
+</script>
+</body>
+</html>
