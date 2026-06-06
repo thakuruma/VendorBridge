@@ -37,6 +37,13 @@
             background: white; border-radius: 12px;
             box-shadow: 0 2px 15px rgba(0,0,0,0.08); overflow: hidden;
         }
+        .btn-print {
+    padding: 6px 14px; background: #2ed573;
+    color: white; border: none; border-radius: 6px;
+    font-size: 12px; cursor: pointer; font-weight: 600;
+    margin-left: 6px;
+}
+.btn-print:hover { opacity: 0.9; }
         .table-header { padding: 20px; border-bottom: 1px solid #f0f0f0; }
         .table-header h3 { font-size: 16px; color: #333; }
         table { width: 100%; border-collapse: collapse; }
@@ -73,6 +80,8 @@
     <a href="/quotations" class="nav-item"><span>💬</span> Quotations</a>
     <a href="/orders" class="nav-item"><span>📦</span> Purchase Orders</a>
     <a href="/invoices" class="nav-item active"><span>🧾</span> Invoices</a>
+    <a href="/logs" class="nav-item"><span>📜</span> Activity Logs</a>
+    <a href="/reports" class="nav-item"><span>📈</span> Reports</a>
 </div>
 
 <div class="main">
@@ -129,9 +138,12 @@
                 <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
                 <td>${inv.created_at ? inv.created_at.split('T')[0] : 'N/A'}</td>
                 <td>
-                    <button class="btn-pdf" onclick="downloadPDF(${inv.id})">
-                        📄 Download PDF
-                    </button>
+                   <button class="btn-pdf" onclick="downloadPDF(${inv.id})"
+                    📄 Download PDF
+</button>
+<button class="btn-print" onclick="printInvoice(${inv.id})">
+    🖨️ Print
+</button>
                 </td>
             </tr>
         `).join('');
@@ -147,7 +159,16 @@
             link.click();
         }
     }
-
+async function printInvoice(id) {
+    const res = await fetch(`/api/invoices/${id}/pdf`);
+    const data = await res.json();
+    if (data.success) {
+        const printWindow = window.open(data.url, '_blank');
+        printWindow.onload = function() {
+            printWindow.print();
+        };
+    }
+}
     loadInvoices();
 </script>
 </body>

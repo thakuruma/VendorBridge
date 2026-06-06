@@ -242,5 +242,36 @@ def download_invoice_pdf(id):
 
     return jsonify({'success': True, 'url': f'/static/{filename}'})
 
+
+@app.route('/logs')
+def logs():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('logs.html')
+
+@app.route('/api/logs')
+def get_logs():
+    db = get_db()
+    vendors = db.execute('SELECT id, name, "Vendor Added" as action, "vendor" as type FROM vendors').fetchall()
+    rfqs = db.execute('SELECT id, title as name, "RFQ Created" as action, "rfq" as type FROM rfqs').fetchall()
+    quotes = db.execute('SELECT id, price as name, "Quotation Submitted" as action, "quotation" as type FROM quotations').fetchall()
+    pos = db.execute('SELECT id, po_number as name, "Purchase Order Created" as action, "po" as type FROM purchase_orders').fetchall()
+    invs = db.execute('SELECT id, invoice_number as name, "Invoice Generated" as action, "invoice" as type FROM invoices').fetchall()
+    db.close()
+
+    all_logs = []
+    for v in vendors:
+        all_logs.append({'action': v['action'], 'detail': v['name'], 'type': v['type'], 'icon': '🏭'})
+    for r in rfqs:
+        all_logs.append({'action': r['action'], 'detail': r['name'], 'type': r['type'], 'icon': '📋'})
+    for q in quotes:
+        all_logs.append({'action': q['action'], 'detail': f"Rs. {q['name']}", 'type': q['type'], 'icon': '💬'})
+    for p in pos:
+        all_logs.append({'action': p['action'], 'detail': p['name'], 'type': p['type'], 'icon': '📦'})
+    for i in invs:
+        all_logs.append({'action': i['action'], 'detail': i['name'], 'type': i['type'], 'icon': '🧾'})
+
+    return jsonify(all_logs)
+    
 if __name__ == '__main__':
     app.run(debug=True)
