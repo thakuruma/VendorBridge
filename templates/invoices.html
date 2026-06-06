@@ -65,6 +65,15 @@
         .inv-number { font-family: monospace; font-weight: 700; color: #e74c3c; }
         .po-number { font-family: monospace; font-weight: 700; color: #667eea; }
         .total-amount { font-weight: 800; color: #333; font-size: 15px; }
+
+        .btn-email {
+    padding: 6px 14px; background: #f39c12;
+    color: white; border: none; border-radius: 6px;
+    font-size: 12px; cursor: pointer; font-weight: 600;
+    margin-left: 6px;
+}
+.btn-email:hover { opacity: 0.9; }
+
     </style>
 </head>
 <body>
@@ -116,6 +125,21 @@
 </div>
 
 <script>
+    async function emailInvoice(id) {
+    const email = prompt('Enter recipient email address:');
+    if (!email) return;
+    const res = await fetch(`/api/invoices/${id}/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+    });
+    const data = await res.json();
+    if (data.success) {
+        alert('✅ Invoice emailed successfully!');
+    } else {
+        alert('❌ Email failed: ' + data.message);
+    }
+}
     async function loadInvoices() {
         const res = await fetch('/api/invoices');
         const invoices = await res.json();
@@ -140,9 +164,11 @@
                 <td>
                    <button class="btn-pdf" onclick="downloadPDF(${inv.id})"
                     📄 Download PDF
-</button>
 <button class="btn-print" onclick="printInvoice(${inv.id})">
     🖨️ Print
+</button>
+<button class="btn-email" onclick="emailInvoice(${inv.id})">
+    📧 Email
 </button>
                 </td>
             </tr>

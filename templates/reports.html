@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VendorBridge - Reports</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+        .sidebar {
+            position: fixed; left: 0; top: 0;
+            width: 240px; height: 100vh;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            color: white; padding: 20px 0; z-index: 100;
+        }
+        .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .sidebar-logo h2 { font-size: 20px; font-weight: 800; }
+        .sidebar-logo p { font-size: 11px; opacity: 0.7; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 20px; cursor: pointer;
+            transition: background 0.3s; font-size: 14px;
+            font-weight: 500; text-decoration: none; color: white;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.2); }
+        .nav-item span { font-size: 18px; }
+        .main { margin-left: 240px; padding: 30px; min-height: 100vh; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .topbar h1 { font-size: 24px; color: #333; font-weight: 700; }
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 20px; margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white; border-radius: 12px;
+            padding: 24px; box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            display: flex; align-items: center; gap: 16px;
+        }
+        .stat-icon {
+            width: 55px; height: 55px; border-radius: 12px;
+            display: flex; align-items: center;
+            justify-content: center; font-size: 24px;
+        }
+        .stat-info h3 { font-size: 28px; font-weight: 800; color: #333; }
+        .stat-info p { font-size: 13px; color: #888; margin-top: 2px; }
+        .s1 .stat-icon { background: #e8f4fd; }
+        .s2 .stat-icon { background: #fef3e2; }
+        .s3 .stat-icon { background: #e8fdf0; }
+        .s4 .stat-icon { background: #fde8f4; }
+        .s5 .stat-icon { background: #ffe8e8; }
+        .section {
+            background: white; border-radius: 12px;
+            padding: 24px; box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+        .section h3 { font-size: 16px; font-weight: 700; color: #333; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #f8f9fa; padding: 12px 16px;
+            text-align: left; font-size: 13px;
+            color: #666; font-weight: 600;
+        }
+        td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
+        tr:last-child td { border-bottom: none; }
+        .bar-container {
+            background: #f0f2f5; border-radius: 20px;
+            height: 10px; width: 100%; margin-top: 8px;
+        }
+        .bar-fill {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            height: 10px; border-radius: 20px;
+            transition: width 1s ease;
+        }
+        .spending-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px; padding: 30px;
+            color: white; text-align: center;
+            margin-bottom: 24px;
+        }
+        .spending-card h2 { font-size: 14px; opacity: 0.85; margin-bottom: 10px; }
+        .spending-card .amount { font-size: 42px; font-weight: 800; }
+        .spending-card p { opacity: 0.75; font-size: 13px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <h2>🏢 VendorBridge</h2>
+        <p>Procurement ERP</p>
+    </div>
+    <a href="/dashboard" class="nav-item"><span>📊</span> Dashboard</a>
+    <a href="/vendors" class="nav-item"><span>🏭</span> Vendors</a>
+    <a href="/rfq" class="nav-item"><span>📋</span> RFQs</a>
+    <a href="/quotations" class="nav-item"><span>💬</span> Quotations</a>
+    <a href="/orders" class="nav-item"><span>📦</span> Purchase Orders</a>
+    <a href="/invoices" class="nav-item"><span>🧾</span> Invoices</a>
+    <a href="/logs" class="nav-item"><span>📜</span> Activity Logs</a>
+    <a href="/reports" class="nav-item active"><span>📈</span> Reports</a>
+</div>
+
+<div class="main">
+    <div class="topbar">
+        <h1>📈 Reports & Analytics</h1>
+    </div>
+
+    <!-- TOTAL SPENDING -->
+    <div class="spending-card">
+        <h2>TOTAL PROCUREMENT SPENDING</h2>
+        <div class="amount" id="totalSpending">Rs. 0</div>
+        <p>Across all invoices including 18% GST</p>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+        <div class="stat-card s1">
+            <div class="stat-icon">🏭</div>
+            <div class="stat-info">
+                <h3 id="rVendors">0</h3>
+                <p>Total Vendors</p>
+            </div>
+        </div>
+        <div class="stat-card s2">
+            <div class="stat-icon">📋</div>
+            <div class="stat-info">
+                <h3 id="rRfqs">0</h3>
+                <p>Total RFQs</p>
+            </div>
+        </div>
+        <div class="stat-card s3">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+                <h3 id="rPos">0</h3>
+                <p>Purchase Orders</p>
+            </div>
+        </div>
+        <div class="stat-card s4">
+            <div class="stat-icon">🧾</div>
+            <div class="stat-info">
+                <h3 id="rInvoices">0</h3>
+                <p>Invoices Generated</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENDOR PERFORMANCE -->
+    <div class="section">
+        <h3>🏆 Vendor Performance</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Vendor Name</th>
+                    <th>Total Orders</th>
+                    <th>Total Amount (Rs.)</th>
+                    <th>Performance</th>
+                </tr>
+            </thead>
+            <tbody id="vendorTable">
+                <tr><td colspan="4" style="text-align:center;padding:30px;color:#888">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function loadReports() {
+        const res = await fetch('/api/reports');
+        const data = await res.json();
+
+        document.getElementById('totalSpending').textContent = `Rs. ${data.total_spending.toLocaleString()}`;
+        document.getElementById('rVendors').textContent = data.total_vendors;
+        document.getElementById('rRfqs').textContent = data.total_rfqs;
+        document.getElementById('rPos').textContent = data.total_pos;
+        document.getElementById('rInvoices').textContent = data.total_invoices;
+
+        const maxTotal = Math.max(...data.top_vendors.map(v => v.total || 0), 1);
+        document.getElementById('vendorTable').innerHTML = data.top_vendors.map(v => `
+            <tr>
+                <td><strong>${v.name}</strong></td>
+                <td>${v.orders || 0} orders</td>
+                <td>Rs. ${(v.total || 0).toLocaleString()}</td>
+                <td style="width:200px">
+                    <div class="bar-container">
+                        <div class="bar-fill" style="width:${((v.total || 0) / maxTotal * 100)}%"></div>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    loadReports();
+</script>
+</body>
+</html>

@@ -3,7 +3,11 @@ from flask_cors import CORS
 from database import get_db, init_db
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-import os, random, string
+import os, random, string, smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
 app = Flask(__name__)
 app.secret_key = 'vendorbridge2026'
@@ -272,6 +276,116 @@ def get_logs():
         all_logs.append({'action': i['action'], 'detail': i['name'], 'type': i['type'], 'icon': '🧾'})
 
     return jsonify(all_logs)
-    
+
+    # ─── REPORTS ────────────────────────────────────────
+@app.route('/reports')
+def reports():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('reports.html')
+
+@app.route('/api/reports')
+def get_reports():
+    db = get_db()
+    total_vendors = db.execute('SELECT COUNT(*) as c FROM vendors').fetchone()['c']
+    total_rfqs = db.execute('SELECT COUNT(*) as c FROM rfqs').fetchone()['c']
+    total_pos = db.execute('SELECT COUNT(*) as c FROM purchase_orders').fetchone()['c']
+    total_invoices = db.execute('SELECT COUNT(*) as c FROM invoices').fetchone()['c']
+    total_spending = db.execute('SELECT SUM(total) as t FROM invoices').fetchone()['t'] or 0
+    top_vendors = db.execute('''
+        SELECT v.name, COUNT(p.id) as orders, SUM(p.total_amount) as total
+        FROM vendors v
+        LEFT JOIN purchase_orders p ON v.id = p.vendor_id
+        GROUP BY v.id ORDER BY orders DESC
+    ''').fetchall()
+    db.close()
+    return jsonify({
+        'total_vendors': total_vendors,
+        'total_rfqs': total_rfqs,
+        'total_pos': total_pos,
+        'total_invoices': total_invoices,
+        'total_spending': round(total_spending, 2),
+        'top_vendors': [dict(v) for v in top_vendors]
+    })
+
+# ─── EMAIL INVOICE ──────────────────────────────────
+@app.route('/api/invoices/<int:id>/email', methods=['POST'])
+def email_invoice(id):
+    data = request.json
+    recipient_email = data.get('email')
+
+    db = get_db()
+    inv = db.execute('''SELECT i.*, p.po_number, v.name as vendor_name, v.email as vendor_email
+                        FROM invoices i
+                        JOIN purchase_orders p ON i.po_id = p.id
+                        JOIN vendors v ON p.vendor_id = v.id
+                        WHERE i.id=?''', (id,)).fetchone()
+    db.close()
+
+    # Generate PDF first
+    filename = f"invoice_{inv['invoice_number']}.pdf"
+    filepath = os.path.join('static', filename)
+
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    c = canvas.Canvas(filepath, pagesize=letter)
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(200, 750, "VendorBridge Invoice")
+    c.setFont("Helvetica", 12)
+    c.drawString(50, 700, f"Invoice Number: {inv['invoice_number']}")
+    c.drawString(50, 680, f"PO Number: {inv['po_number']}")
+    c.drawString(50, 660, f"Vendor: {inv['vendor_name']}")
+    c.drawString(50, 620, f"Amount: Rs. {inv['amount']:.2f}")
+    c.drawString(50, 600, f"Tax (18% GST): Rs. {inv['tax']:.2f}")
+    c.drawString(50, 580, f"Total: Rs. {inv['total']:.2f}")
+    c.save()
+
+    try:
+        # Email config - use your gmail
+        sender_email = "vendorbridge2026@gmail.com"
+        sender_password = "your_app_password"
+
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = recipient_email
+        msg['Subject'] = f"Invoice {inv['invoice_number']} from VendorBridge"
+
+        body = f"""
+Dear {inv['vendor_name']},
+
+Please find attached your invoice from VendorBridge.
+
+Invoice Details:
+- Invoice Number: {inv['invoice_number']}
+- PO Number: {inv['po_number']}
+- Amount: Rs. {inv['amount']:.2f}
+- Tax (18% GST): Rs. {inv['tax']:.2f}
+- Total Amount: Rs. {inv['total']:.2f}
+
+Thank you for your business!
+
+Best regards,
+VendorBridge Team
+        """
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Attach PDF
+        with open(filepath, 'rb') as f:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(f.read())
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename={filename}')
+            msg.attach(part)
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, recipient_email, msg.as_string())
+        server.quit()
+
+        return jsonify({'success': True, 'message': 'Email sent successfully!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 if __name__ == '__main__':
     app.run(debug=True)
