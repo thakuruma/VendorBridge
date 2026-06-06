@@ -113,7 +113,7 @@
         const res = await fetch('/api/logs');
         const logs = await res.json();
 
-        // Stats
+        
         const counts = { vendor: 0, rfq: 0, quotation: 0, po: 0, invoice: 0 };
         logs.forEach(l => counts[l.type]++);
         document.getElementById('statsRow').innerHTML = `

@@ -179,8 +179,6 @@
     <a href="/quotations" class="nav-item"><span>💬</span> Quotations</a>
     <a href="/orders" class="nav-item"><span>📦</span> Purchase Orders</a>
     <a href="/invoices" class="nav-item"><span>🧾</span> Invoices</a>
-    <a href="/logs" class="nav-item"><span>📜</span> Activity Logs</a>
-    <a href="/reports" class="nav-item"><span>📈</span> Reports</a>
 </div>
 
 <!-- MAIN CONTENT -->
@@ -228,3 +226,45 @@
         </div>
         <div class="card">
             <div class="card-icon">🧾</div>
+            <div class="card-info">
+                <h3 id="invoiceCount">0</h3>
+                <p>Invoices</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="section-title">Quick Actions</div>
+    <div class="actions-grid">
+        <a href="/vendors" class="action-btn">
+            <div class="icon">🏭</div>
+            <p>Add Vendor</p>
+        </a>
+        <a href="/rfq" class="action-btn">
+            <div class="icon">📋</div>
+            <p>Create RFQ</p>
+        </a>
+        <a href="/quotations" class="action-btn">
+            <div class="icon">💬</div>
+            <p>View Quotations</p>
+        </a>
+        <a href="/invoices" class="action-btn">
+            <div class="icon">🧾</div>
+            <p>View Invoices</p>
+        </a>
+    </div>
+</div>
+
+<script>
+    // Load stats
+    fetch('/api/dashboard-stats')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('vendorCount').textContent = data.vendors;
+            document.getElementById('rfqCount').textContent = data.rfqs;
+            document.getElementById('poCount').textContent = data.pos;
+            document.getElementById('invoiceCount').textContent = data.invoices;
+        });
+</script>
+</body>
+</html>

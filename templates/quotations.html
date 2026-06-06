@@ -145,7 +145,7 @@
     </div>
 </div>
 
-<!-- ADD QUOTATION MODAL -->
+
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
         <h2>💬 Add Quotation</h2>
@@ -213,7 +213,7 @@
             return;
         }
 
-        // Find lowest price per RFQ
+        
         const lowestByRfq = {};
         quotes.forEach(q => {
             if (!lowestByRfq[q.rfq_id] || q.price < lowestByRfq[q.rfq_id]) {

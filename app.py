@@ -15,7 +15,7 @@ CORS(app)
 
 init_db()
 
-# ─── AUTH ───────────────────────────────────────────
+
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -57,7 +57,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# ─── DASHBOARD ──────────────────────────────────────
+
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
@@ -74,7 +74,7 @@ def dashboard_stats():
     db.close()
     return jsonify({'vendors': vendors, 'rfqs': rfqs, 'pos': pos, 'invoices': invoices})
 
-# ─── VENDORS ────────────────────────────────────────
+
 @app.route('/vendors')
 def vendors():
     if 'user_id' not in session:
@@ -106,7 +106,7 @@ def delete_vendor(id):
     db.close()
     return jsonify({'success': True})
 
-# ─── RFQ ────────────────────────────────────────────
+
 @app.route('/rfq')
 def rfq():
     if 'user_id' not in session:
@@ -132,7 +132,7 @@ def create_rfq():
     db.close()
     return jsonify({'success': True})
 
-# ─── QUOTATIONS ─────────────────────────────────────
+
 @app.route('/quotations')
 def quotations():
     if 'user_id' not in session:
@@ -171,7 +171,7 @@ def approve_quotation(id):
     db.close()
     return jsonify({'success': True, 'po_number': po_number})
 
-# ─── PURCHASE ORDERS ────────────────────────────────
+
 @app.route('/orders')
 def orders():
     if 'user_id' not in session:
@@ -201,7 +201,7 @@ def generate_invoice(id):
     db.close()
     return jsonify({'success': True, 'invoice_number': invoice_number})
 
-# ─── INVOICES ───────────────────────────────────────
+
 @app.route('/invoices')
 def invoices():
     if 'user_id' not in session:
@@ -277,7 +277,7 @@ def get_logs():
 
     return jsonify(all_logs)
 
-    # ─── REPORTS ────────────────────────────────────────
+   
 @app.route('/reports')
 def reports():
     if 'user_id' not in session:
@@ -308,7 +308,7 @@ def get_reports():
         'top_vendors': [dict(v) for v in top_vendors]
     })
 
-# ─── EMAIL INVOICE ──────────────────────────────────
+
 @app.route('/api/invoices/<int:id>/email', methods=['POST'])
 def email_invoice(id):
     data = request.json
@@ -386,6 +386,26 @@ VendorBridge Team
         return jsonify({'success': True, 'message': 'Email sent successfully!'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+        
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    return render_template('forgot_password.html')
+
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json
+    email = data.get('email')
+    new_password = data.get('new_password')
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
+    if not user:
+        db.close()
+        return jsonify({'success': False, 'message': 'Email not found!'})
+    db.execute('UPDATE users SET password=? WHERE email=?', (new_password, email))
+    db.commit()
+    db.close()
+    return jsonify({'success': True, 'message': 'Password reset successfully!'})
 
 if __name__ == '__main__':
     app.run(debug=True)
