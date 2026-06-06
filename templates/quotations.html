@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VendorBridge - Quotations</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+        .sidebar {
+            position: fixed; left: 0; top: 0;
+            width: 240px; height: 100vh;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            color: white; padding: 20px 0; z-index: 100;
+        }
+        .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .sidebar-logo h2 { font-size: 20px; font-weight: 800; }
+        .sidebar-logo p { font-size: 11px; opacity: 0.7; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 20px; cursor: pointer;
+            transition: background 0.3s; font-size: 14px;
+            font-weight: 500; text-decoration: none; color: white;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.2); }
+        .nav-item span { font-size: 18px; }
+        .main { margin-left: 240px; padding: 30px; min-height: 100vh; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .topbar h1 { font-size: 24px; color: #333; font-weight: 700; }
+        .btn {
+            padding: 10px 20px; background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-success {
+            padding: 6px 14px; background: #2ed573;
+            color: white; border: none; border-radius: 6px;
+            font-size: 12px; cursor: pointer; font-weight: 600;
+        }
+        .modal-overlay {
+            display: none; position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 200;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white; border-radius: 16px;
+            padding: 30px; width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal h2 { margin-bottom: 20px; color: #333; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; font-size: 14px; }
+        input, select, textarea {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px; outline: none; font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #667eea; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-cancel {
+            padding: 10px 20px; background: #f0f0f0;
+            color: #333; border: none; border-radius: 8px;
+            font-size: 14px; cursor: pointer;
+        }
+        .table-container {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08); overflow: hidden;
+        }
+        .table-header {
+            padding: 20px; border-bottom: 1px solid #f0f0f0;
+        }
+        .table-header h3 { font-size: 16px; color: #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #f8f9fa; padding: 12px 16px;
+            text-align: left; font-size: 13px;
+            color: #666; font-weight: 600;
+        }
+        td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+        .status-badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 600;
+        }
+        .status-pending { background: #fef3e2; color: #f39c12; }
+        .status-approved { background: #e8fdf0; color: #2ed573; }
+        .status-rejected { background: #ffe8e8; color: #ff4757; }
+        .empty-state { text-align: center; padding: 50px; color: #888; }
+        .lowest-price { background: #e8fdf0 !important; }
+        .lowest-badge {
+            background: #2ed573; color: white;
+            padding: 2px 8px; border-radius: 10px;
+            font-size: 11px; margin-left: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <h2>🏢 VendorBridge</h2>
+        <p>Procurement ERP</p>
+    </div>
+    <a href="/dashboard" class="nav-item"><span>📊</span> Dashboard</a>
+    <a href="/vendors" class="nav-item"><span>🏭</span> Vendors</a>
+    <a href="/rfq" class="nav-item"><span>📋</span> RFQs</a>
+    <a href="/quotations" class="nav-item active"><span>💬</span> Quotations</a>
+    <a href="/orders" class="nav-item"><span>📦</span> Purchase Orders</a>
+    <a href="/invoices" class="nav-item"><span>🧾</span> Invoices</a>
+</div>
+
+<div class="main">
+    <div class="topbar">
+        <h1>💬 Quotations</h1>
+        <button class="btn" onclick="openModal()">+ Add Quotation</button>
+    </div>
+
+    <div class="table-container">
+        <div class="table-header">
+            <h3>All Quotations — Lowest price is highlighted in green ✅</h3>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>RFQ Title</th>
+                    <th>Vendor</th>
+                    <th>Price (Rs.)</th>
+                    <th>Delivery Days</th>
+                    <th>Notes</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="quotationTable">
+                <tr><td colspan="8" class="empty-state">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ADD QUOTATION MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h2>💬 Add Quotation</h2>
+        <div class="form-group">
+            <label>Select RFQ</label>
+            <select id="qRfq">
+                <option value="">Select RFQ...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Select Vendor</label>
+            <select id="qVendor">
+                <option value="">Select Vendor...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Price (Rs.)</label>
+            <input type="number" id="qPrice" placeholder="Enter price"/>
+        </div>
+        <div class="form-group">
+            <label>Delivery Days</label>
+            <input type="number" id="qDays" placeholder="e.g. 7"/>
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea id="qNotes" placeholder="Any additional notes..."></textarea>
+        </div>
+        <div class="modal-btns">
+            <button class="btn" onclick="addQuotation()">Submit Quotation</button>
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal() {
+        loadDropdowns();
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+
+    async function loadDropdowns() {
+        const [rfqRes, vendorRes] = await Promise.all([
+            fetch('/api/rfqs'), fetch('/api/vendors')
+        ]);
+        const rfqs = await rfqRes.json();
+        const vendors = await vendorRes.json();
+
+        const rfqSelect = document.getElementById('qRfq');
+        rfqSelect.innerHTML = '<option value="">Select RFQ...</option>';
+        rfqs.forEach(r => { rfqSelect.innerHTML += `<option value="${r.id}">${r.title}</option>`; });
+
+        const vendorSelect = document.getElementById('qVendor');
+        vendorSelect.innerHTML = '<option value="">Select Vendor...</option>';
+        vendors.forEach(v => { vendorSelect.innerHTML += `<option value="${v.id}">${v.name}</option>`; });
+    }
+
+    async function loadQuotations() {
+        const res = await fetch('/api/quotations');
+        const quotes = await res.json();
+        const tbody = document.getElementById('quotationTable');
+
+        if (quotes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">💬 No quotations yet. Add your first quotation!</td></tr>';
+            return;
+        }
+
+        // Find lowest price per RFQ
+        const lowestByRfq = {};
+        quotes.forEach(q => {
+            if (!lowestByRfq[q.rfq_id] || q.price < lowestByRfq[q.rfq_id]) {
+                lowestByRfq[q.rfq_id] = q.price;
+            }
+        });
+
+        tbody.innerHTML = quotes.map((q, i) => {
+            const isLowest = q.price === lowestByRfq[q.rfq_id];
+            return `
+            <tr class="${isLowest ? 'lowest-price' : ''}">
+                <td>${i + 1}</td>
+                <td>${q.rfq_title}</td>
+                <td>${q.vendor_name}</td>
+                <td><strong>Rs. ${q.price}</strong>${isLowest ? '<span class="lowest-badge">Lowest</span>' : ''}</td>
+                <td>${q.delivery_days} days</td>
+                <td>${q.notes || '-'}</td>
+                <td><span class="status-badge status-${q.status}">${q.status}</span></td>
+                <td>
+                    ${q.status === 'pending' ?
+                        `<button class="btn-success" onclick="approveQuotation(${q.id})">✅ Approve</button>` :
+                        '-'}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function addQuotation() {
+        const rfq_id = document.getElementById('qRfq').value;
+        const vendor_id = document.getElementById('qVendor').value;
+        const price = document.getElementById('qPrice').value;
+        const delivery_days = document.getElementById('qDays').value;
+        const notes = document.getElementById('qNotes').value;
+        if (!rfq_id || !vendor_id || !price || !delivery_days) {
+            alert('Please fill all required fields!');
+            return;
+        }
+        const res = await fetch('/api/quotations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rfq_id, vendor_id, price, delivery_days, notes })
+        });
+        const data = await res.json();
+        if (data.success) { closeModal(); loadQuotations(); }
+    }
+
+    async function approveQuotation(id) {
+        if (!confirm('Approve this quotation and generate a Purchase Order?')) return;
+        const res = await fetch(`/api/quotations/${id}/approve`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            alert(`✅ Quotation approved!\nPurchase Order created: ${data.po_number}`);
+            loadQuotations();
+        }
+    }
+
+    loadQuotations();
+</script>
+</body>
+</html>

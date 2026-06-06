@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VendorBridge - Invoices</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+        .sidebar {
+            position: fixed; left: 0; top: 0;
+            width: 240px; height: 100vh;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            color: white; padding: 20px 0; z-index: 100;
+        }
+        .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .sidebar-logo h2 { font-size: 20px; font-weight: 800; }
+        .sidebar-logo p { font-size: 11px; opacity: 0.7; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 20px; cursor: pointer;
+            transition: background 0.3s; font-size: 14px;
+            font-weight: 500; text-decoration: none; color: white;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.2); }
+        .nav-item span { font-size: 18px; }
+        .main { margin-left: 240px; padding: 30px; min-height: 100vh; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .topbar h1 { font-size: 24px; color: #333; font-weight: 700; }
+        .btn-pdf {
+            padding: 6px 14px; background: #e74c3c;
+            color: white; border: none; border-radius: 6px;
+            font-size: 12px; cursor: pointer; font-weight: 600;
+        }
+        .btn-pdf:hover { opacity: 0.9; }
+        .table-container {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08); overflow: hidden;
+        }
+        .table-header { padding: 20px; border-bottom: 1px solid #f0f0f0; }
+        .table-header h3 { font-size: 16px; color: #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #f8f9fa; padding: 12px 16px;
+            text-align: left; font-size: 13px;
+            color: #666; font-weight: 600;
+        }
+        td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+        .status-badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 600;
+        }
+        .status-unpaid { background: #ffe8e8; color: #ff4757; }
+        .status-paid { background: #e8fdf0; color: #2ed573; }
+        .empty-state { text-align: center; padding: 50px; color: #888; }
+        .inv-number { font-family: monospace; font-weight: 700; color: #e74c3c; }
+        .po-number { font-family: monospace; font-weight: 700; color: #667eea; }
+        .total-amount { font-weight: 800; color: #333; font-size: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <h2>🏢 VendorBridge</h2>
+        <p>Procurement ERP</p>
+    </div>
+    <a href="/dashboard" class="nav-item"><span>📊</span> Dashboard</a>
+    <a href="/vendors" class="nav-item"><span>🏭</span> Vendors</a>
+    <a href="/rfq" class="nav-item"><span>📋</span> RFQs</a>
+    <a href="/quotations" class="nav-item"><span>💬</span> Quotations</a>
+    <a href="/orders" class="nav-item"><span>📦</span> Purchase Orders</a>
+    <a href="/invoices" class="nav-item active"><span>🧾</span> Invoices</a>
+</div>
+
+<div class="main">
+    <div class="topbar">
+        <h1>🧾 Invoices</h1>
+    </div>
+
+    <div class="table-container">
+        <div class="table-header">
+            <h3>All Invoices</h3>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Invoice No.</th>
+                    <th>PO Number</th>
+                    <th>Vendor</th>
+                    <th>Amount (Rs.)</th>
+                    <th>Tax 18% (Rs.)</th>
+                    <th>Total (Rs.)</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="invoicesTable">
+                <tr><td colspan="10" class="empty-state">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function loadInvoices() {
+        const res = await fetch('/api/invoices');
+        const invoices = await res.json();
+        const tbody = document.getElementById('invoicesTable');
+
+        if (invoices.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" class="empty-state">🧾 No invoices yet. Generate invoice from Purchase Orders!</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = invoices.map((inv, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td><span class="inv-number">${inv.invoice_number}</span></td>
+                <td><span class="po-number">${inv.po_number}</span></td>
+                <td>${inv.vendor_name}</td>
+                <td>Rs. ${inv.amount.toFixed(2)}</td>
+                <td>Rs. ${inv.tax.toFixed(2)}</td>
+                <td><span class="total-amount">Rs. ${inv.total.toFixed(2)}</span></td>
+                <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
+                <td>${inv.created_at ? inv.created_at.split('T')[0] : 'N/A'}</td>
+                <td>
+                    <button class="btn-pdf" onclick="downloadPDF(${inv.id})">
+                        📄 Download PDF
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function downloadPDF(id) {
+        const res = await fetch(`/api/invoices/${id}/pdf`);
+        const data = await res.json();
+        if (data.success) {
+            const link = document.createElement('a');
+            link.href = data.url;
+            link.download = '';
+            link.click();
+        }
+    }
+
+    loadInvoices();
+</script>
+</body>
+</html>
